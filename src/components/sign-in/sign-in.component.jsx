@@ -1,44 +1,73 @@
-import React from "react";
+import { useState } from 'react';
 import FormInput from "../form-input/form-input.component";
 import CustomButton from "../custom-button/custom-button.component";
-import { signInWithGoogle } from "../../firebase/firebase.utils";
+import {  signInWithGooglePopup,
+  createUserDocumentFromAuth,
+  signInAuthUserWithEmailAndPassword } from "../../firebase/firebase.utils";
 import "./sign-in.styles.scss";
 
-class SignIn extends React.Component {
-  constructor(props) {
-    super(props);
+const defaultFormFields = {
+  email: '',
+  password: '',
+};
 
-    this.state = {
-      email: "",
-      password: "",
-    };
-  }
+const SignIn = () => {
+  
+  const [formFields, setFormFields] = useState(defaultFormFields);
+  const { email, password } = formFields;
 
-  handleSubmit = (event) => {
+  const resetFormFields = () => {
+    setFormFields(defaultFormFields);
+  };
+
+  
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    this.setState({ email: "", password: "" });
+    try {
+      const response = await signInAuthUserWithEmailAndPassword(
+        email,
+        password
+      );
+      console.log(response);
+      resetFormFields();
+    } catch (error) {
+      switch (error.code) {
+        case 'auth/wrong-password':
+          alert('incorrect password for email');
+          break;
+        case 'auth/user-not-found':
+          alert('no user associated with this email');
+          break;
+        default:
+          console.log(error);
+      }
+    }
   };
 
-  handleChange = (event) => {
-    const { value, name } = event.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
-    this.setState({ [name]: value });
+    setFormFields({ ...formFields, [name]: value });
+  }
+
+  const signInWithGoogle = async () => {
+    const { user } = await signInWithGooglePopup();
+    await createUserDocumentFromAuth(user);
   };
 
-  render() {
     return (
       <div className="sign-in">
         <h2>I already have an account</h2>
         <span>Sign in with your email and password</span>
 
-        <form onSubmit={this.handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <FormInput
             type="email"
             name="email"
-            handleChange={this.handleChange}
+            onChange={handleChange}
             label="Email"
-            value={this.state.email}
+            value={email}
             autoComplete="username"
             required
           />
@@ -46,8 +75,8 @@ class SignIn extends React.Component {
           <FormInput
             name="password"
             type="password"
-            value={this.state.email}
-            handleChange={this.handleChange}
+            value={password}
+            onChange={handleChange}
             label="Password"
             autoComplete="current-password"
             required
@@ -63,6 +92,6 @@ class SignIn extends React.Component {
       </div>
     );
   }
-}
+
 
 export default SignIn;
